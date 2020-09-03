@@ -11,19 +11,26 @@ class HashTableEntry:
 # Hash table can't have fewer than this many slots
 MIN_CAPACITY = 8
 
+class LinkedList:
+    def __init__(self):
+        self.head = None
+
 
 class HashTable:
     """
     A hash table that with `capacity` buckets
     that accepts string keys
-
     Implement this.
     """
 
     def __init__(self, capacity):
         self.capacity = capacity if capacity >= MIN_CAPACITY else MIN_CAPACITY
-        self.table = [None] * self.capacity
         self.total = 0
+        self.buckets = [LinkedList()] * self.capacity
+        
+
+    def __repr__(self):
+        return self.table
 
 
     def get_num_slots(self):
@@ -31,37 +38,23 @@ class HashTable:
         Return the length of the list you're using to hold the hash
         table data. (Not the number of items stored in the hash table,
         but the number of slots in the main list.)
-
         One of the tests relies on this.
-
         Implement this.
         """
-        return len(self.table)
+        return len(self.buckets)
 
 
     def get_load_factor(self):
         """
         Return the load factor for this hash table.
-
         Implement this.
         """
-        return self.total/self.capacity
-
-
-    def fnv1(self, key):
-        """
-        FNV-1 Hash, 64-bit
-
-        Implement this, and/or DJB2.
-        """
-
-        # Your code here
+        return self.total/len(self.buckets)
 
 
     def djb2(self, key):
         """
         DJB2 hash, 32-bit
-
         Implement this, and/or FNV-1.
         """
         hash = 5381
@@ -75,54 +68,130 @@ class HashTable:
         Take an arbitrary key and return a valid integer index
         between within the storage capacity of the hash table.
         """
-        #return self.fnv1(key) % self.capacity
         return self.djb2(key) % self.capacity
 
     def put(self, key, value):
         """
         Store the value with the given key.
-
         Hash collisions should be handled with Linked List Chaining.
-
         Implement this.
         """
+        # Day One
+        # index = self.hash_index(key)
+        # self.buckets[index] = value
+
+        # hash the key to get its index
         index = self.hash_index(key)
-        self.table[index] = value
+        # if there is no values in the list, add it
+        if self.buckets[index].head is None:
+            self.buckets[index].head = HashTableEntry(key, value)
+            self.total += 1
+        # if there is, start at the head and check to see if it matches any
+        else:
+            current = self.buckets[index].head
+            while current.next:
+                # if it does match, update the value
+                if current.key == key:
+                    current.value = value
+                current = current.next
+            
+            # if it doesn't match any, add it to the LL
+            current.next = HashTableEntry(key, value)
+            self.total += 1
+
 
 
     def delete(self, key):
         """
         Remove the value stored with the given key.
-
         Print a warning if the key is not found.
-
         Implement this.
         """
+        # Day One
+        # index = self.hash_index(key)
+        # self.buckets[index] = None
+
+        # hash the key to get its index
+        # set the head to a variable for ease of reference
         index = self.hash_index(key)
-        self.table[index] = None
+        current = self.buckets[index].head        
+        # start at the beginning of the LL and move through
+        # if the first one matches, set previous next as new head
+        # reduce size of LL by one
+        if current.key == key:
+            self.buckets[index].head = self.buckets[index].head.next
+            self.total -= 1
+            return        
+        # if it's not the first one, continue moving through
+        while current.next:
+            previous = current
+            current = current.next
+            # when you find the key, set previous next as new head
+            # reduce size of LL by one
+            if current.key == key:
+                previous.next = current.next
+                self.total -= 1
+                return None
+        
 
 
     def get(self, key):
         """
         Retrieve the value stored with the given key.
-
         Returns None if the key is not found.
-
         Implement this.
         """
+        # Day One
+        # index = self.hash_index(key)
+        # return self.table[index]
+
+        # hash the key to get its index
+        # set the head to a variable for ease of reference
         index = self.hash_index(key)
-        return self.table[index]
+        current = self.buckets[index].head        
+        # start at the beginning of the LL and move through
+        # if the LL is empty, return, if the key matches, return the value
+        if current == None:
+            return
+        if current.key == key:
+            return current.value
+        
+        # if it's not the first one, continue moving through
+        while current.next:
+            current = current.next
+            if current.key == key:
+                return current.value
+        return None
 
 
     def resize(self, new_capacity):
         """
         Changes the capacity of the hash table and
         rehashes all key/value pairs.
-
         Implement this.
         """
-        pass 
-        # For day 2
+        # Add a new linked list for each slot in the new table
+        self.capacity = new_capacity
+        new_list = [LinkedList()] * new_capacity
+
+        # for every row in the table, start at the first item
+        for i in self.buckets:
+            current = i.head
+
+            # rehash them to their new locations? All the way thru the LL
+            while current is not None:
+                index = self.hash_index(current.key)
+
+                # add the items to their new spots in the table
+                if new_list[index].head == None:
+                    new_list[index].head = HashTableEntry(current.key, current.value)
+                else:
+                    new_entry = HashTableEntry(current.key, current.value)
+                    new_entry.next = new_list[index].head
+                    new_list[index].head = new_entry
+                current = current.next
+        # set the buckets/table to this new list that has everything sorted
+        self.buckets = new_list
 
 
 
